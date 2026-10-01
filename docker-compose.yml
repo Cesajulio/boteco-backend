@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  boteco-api:
+    build: .
+    container_name: boteco-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    depends_on:
+      - redis
+    volumes:
+      # Mapeia os arquivos locais para dentro do container
+      - .:/usr/src/app
+      # Protege a pasta node_modules dentro do container para não ser sobrescrita pelo host
+      - /usr/src/app/node_modules
+
+  # Segundo banco de dados para cumprir o requisito (ex: Cache e Idempotência)
+  # O primeiro banco é o Firebase Firestore na nuvem
+  redis:
+    image: redis:alpine
+    container_name: boteco-redis
+    ports:
+      - "6379:6379"

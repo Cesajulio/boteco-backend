@@ -1,0 +1,114 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API do Boteco",
+    "version": "1.0.0",
+    "description": "API para listar bares próximos e atualizar preços de produtos."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Servidor Local"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "Autenticar usuário",
+        "description": "Gera um token JWT para admin ou cliente.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string", "example": "admin" },
+                  "password": { "type": "string", "example": "admin" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string" },
+                    "role": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bars": {
+      "get": {
+        "summary": "Buscar bares próximos",
+        "parameters": [
+          { "name": "lat", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "lng", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "radius", "in": "query", "required": true, "schema": { "type": "number", "description": "Raio em km" } }
+        ],
+        "responses": {
+          "200": { "description": "Sucesso" }
+        }
+      }
+    },
+    "/bars/search": {
+      "get": {
+        "summary": "Pesquisar bares por nome",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Sucesso" }
+        }
+      }
+    },
+    "/bars/{id}/prices": {
+      "post": {
+        "summary": "Atualizar preço de um produto",
+        "security": [ { "bearerAuth": [] } ],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "Idempotency-Key", "in": "header", "required": true, "schema": { "type": "string" }, "description": "Chave para evitar duplicidade." }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": { "type": "string", "example": "cerveja-600" },
+                  "price": { "type": "number", "example": 12.5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Sucesso" },
+          "401": { "description": "Não autorizado" },
+          "403": { "description": "Acesso negado" }
+        }
+      }
+    }
+  }
+}
