@@ -1,41 +1,82 @@
 const barService = require('../services/bar.service');
-const { AppError } = require('../middlewares/error.middleware');
 
 class BarController {
-  async getNearbyBars(req, res, next) {
+  async listOrNearbyBars(req, res, next) {
     try {
-      const { lat, lng, radius } = req.query;
-
-      if (!lat || !lng || !radius) {
-        throw new AppError('Parâmetros lat, lng e radius são obrigatórios na querystring.', 400);
-      }
-
-      const userLat = parseFloat(lat);
-      const userLng = parseFloat(lng);
-      const radiusKm = parseFloat(radius);
-
-      if (isNaN(userLat) || isNaN(userLng) || isNaN(radiusKm)) {
-        throw new AppError('Os parâmetros lat, lng e radius devem ser numéricos.', 400);
-      }
-
-      const nearbyBars = await barService.getNearbyBars(userLat, userLng, radiusKm);
-      return res.json(nearbyBars);
+      const result = await barService.listBars(req.query);
+      res.setHeader('X-Cache', result.cacheStatus);
+      return res.status(200).json({
+        data: result.data,
+        pagination: result.pagination,
+      });
     } catch (error) {
-      next(error);
+      return next(error);
     }
   }
 
   async searchBars(req, res, next) {
     try {
-      const { q } = req.query;
-      if (!q) {
-        throw new AppError('O parâmetro q é obrigatório na querystring.', 400);
-      }
-
-      const results = await barService.searchBarsByName(q.toString());
-      return res.json(results);
+      const { q, limit } = req.query;
+      const result = await barService.searchBarsByName(q, limit);
+      res.setHeader('X-Cache', result.cacheStatus);
+      return res.status(200).json({
+        data: result.data,
+        meta: result.meta,
+      });
     } catch (error) {
-      next(error);
+      return next(error);
+    }
+  }
+
+  async getRanking(req, res, next) {
+    try {
+      const { product, limit } = req.query;
+      const result = await barService.getCheapestRanking(product, limit);
+      res.setHeader('X-Cache', result.cacheStatus);
+      return res.status(200).json({
+        product: result.product,
+        priceField: result.priceField,
+        data: result.data,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async getBarById(req, res, next) {
+    try {
+      const bar = await barService.getBarById(req.params.id);
+      return res.status(200).json(bar);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async createBar(req, res, next) {
+    try {
+      const created = await barService.createBar(req.body, req.user?.username);
+      res.setHeader('Location', `/bars/${created.id}`);
+      return res.status(201).json(created);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async updateBar(req, res, next) {
+    try {
+      const updated = await barService.updateBar(req.params.id, req.body);
+      return res.status(200).json(updated);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async deleteBar(req, res, next) {
+    try {
+      await barService.deleteBar(req.params.id);
+      return res.status(204).send();
+    } catch (error) {
+      return next(error);
     }
   }
 
@@ -43,30 +84,47 @@ class BarController {
     try {
       const { id } = req.params;
       const { productId, price } = req.body;
+      const result = await barService.updateProductPrice(id, productId, price, req.user?.username);
 
-      if (!productId || typeof price !== 'number') {
-        throw new AppError('Os campos productId (string) e price (number) são obrigatórios no body.', 400);
-      }
-
-      const result = await barService.updateProductPrice(id, productId, price);
-      
-      return res.json({
+      return res.status(200).json({
         message: 'Preço atualizado com sucesso.',
         updatedField: result.targetField,
-        newAveragePrice: result.newAveragePrice
+        newAveragePrice: result.newAveragePrice,
+        reportsCount: result.reportsCount,
+        recordedAt: result.recordedAt,
       });
-      
     } catch (error) {
-      if (error.message === 'PRICE_NEGATIVE') {
-        return next(new AppError('O preço não pode ser negativo.', 400));
-      }
-      if (error.message === 'BAR_NOT_FOUND') {
-        return next(new AppError('Bar não encontrado.', 404));
-      }
-      if (error.message === 'PRODUCT_NOT_MAPPED') {
-        return next(new AppError('Produto não reconhecido ou não mapeado para o banco de dados.', 400));
-      }
-      next(error);
+      return next(error);
+    }
+  }
+
+  async getPriceHistory(req, res, next) {
+    try {
+      const { id } = req.params;
+      const result = await barService.getPriceHistory(id, req.query);
+      return res.status(200).json(result);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async addReview(req, res, next) {
+    try {
+      const { id } = req.params;
+      const result = await barService.addReview(id, req.body, req.user);
+      return res.status(201).json(result);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async getReviews(req, res, next) {
+    try {
+      const { id } = req.params;
+      const result = await barService.getReviews(id, req.query);
+      return res.status(200).json(result);
+    } catch (error) {
+      return next(error);
     }
   }
 }

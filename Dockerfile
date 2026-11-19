@@ -1,20 +1,22 @@
-# Usa uma imagem oficial do Node.js baseada em Alpine (mais leve)
-FROM node:18-alpine
+# Imagem oficial LTS do Node.js baseada em Alpine (mais leve e segura)
+FROM node:22-alpine
 
-# Define o diretório de trabalho dentro do container
 WORKDIR /usr/src/app
 
-# Copia os arquivos de dependência
+# Instala apenas dependências de produção para imagem enxuta
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Instala as dependências
-RUN npm install
-
-# Copia todo o código para dentro do container
+# Copia o código-fonte da aplicação
 COPY . .
 
-# Expõe a porta que a API utiliza
+# Executa com usuário não-root por boas práticas de segurança em containers
+USER node
+
 EXPOSE 3000
 
-# Comando para iniciar a aplicação
-CMD [ "npm", "start" ]
+# Verificação automática de saúde do container
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://localhost:3000/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
+CMD ["npm", "start"]

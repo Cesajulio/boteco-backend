@@ -1,27 +1,49 @@
-const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middlewares/auth.middleware');
+const authService = require('../services/auth.service');
 
 class AuthController {
-  async login(req, res) {
-    const { username, password } = req.body;
-
-    // Mock simples: apenas para fim da atividade
-    // Se for admin/admin, gera token de admin. Se for cliente/cliente, gera token de cliente.
-    if (username === 'admin' && password === 'admin') {
-      const token = jwt.sign({ username: 'admin', role: 'admin' }, JWT_SECRET, { expiresIn: '1h' });
-      return res.json({ token, role: 'admin' });
+  async register(req, res, next) {
+    try {
+      const result = await authService.register(req.body);
+      return res.status(201).json(result);
+    } catch (error) {
+      return next(error);
     }
+  }
 
-    if (username === 'cliente' && password === 'cliente') {
-      const token = jwt.sign({ username: 'cliente', role: 'cliente' }, JWT_SECRET, { expiresIn: '1h' });
-      return res.json({ token, role: 'cliente' });
+  async login(req, res, next) {
+    try {
+      const result = await authService.login(req.body);
+      return res.status(200).json(result);
+    } catch (error) {
+      return next(error);
     }
+  }
 
-    return res.status(401).json({ 
-      type: "about:blank",
-      title: "Unauthorized",
-      status: 401,
-      detail: 'Credenciais inválidas. Use admin/admin ou cliente/cliente.' 
+  async refresh(req, res, next) {
+    try {
+      const { refreshToken } = req.body;
+      const result = await authService.refresh(refreshToken);
+      return res.status(200).json(result);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async logout(req, res, next) {
+    try {
+      const result = await authService.logout(req.user);
+      return res.status(200).json(result);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  async me(req, res) {
+    return res.status(200).json({
+      id: req.user.sub,
+      username: req.user.username,
+      name: req.user.name,
+      role: req.user.role,
     });
   }
 }

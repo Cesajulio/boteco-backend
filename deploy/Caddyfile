@@ -1,0 +1,5 @@
+# Opcional: substitua pelo seu domínio apontando para o IP da VPS
+# e execute: caddy run --config deploy/Caddyfile
+api.seudominio.com {
+    reverse_proxy 127.0.0.1:3000
+}

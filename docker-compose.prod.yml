@@ -1,0 +1,60 @@
+services:
+  boteco-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: boteco-api:2.0.0
+    container_name: boteco-api-prod
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    volumes:
+      # Monta a credencial do Firebase em modo somente leitura (nunca embutida na imagem)
+      - ./firebase-key.json:/usr/src/app/firebase-key.json:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - boteco-net
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: boteco-redis-prod
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    # Porta 6379 NÃO é exposta na internet; acessível apenas pela rede interna Docker
+    expose:
+      - "6379"
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - boteco-net
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  boteco-net:
+    driver: bridge
+
+volumes:
+  redis_data_prod:

@@ -1,22 +1,45 @@
 {
   "name": "boteco-backend",
-  "version": "1.0.0",
-  "description": "Boteco backend API",
+  "version": "2.0.0",
+  "description": "Boteco backend API - Arquitetura em Camadas com Firestore, Redis, JWT, Validação Zod, Observabilidade e Testes",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node --watch index.js",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --runInBand --coverage"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/config/firebase.js",
+      "!src/config/swagger.json"
+    ]
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
+    "dotenv": "^18.0.10",
     "express": "^4.19.2",
     "express-rate-limit": "^8.7.0",
     "firebase-admin": "^12.1.0",
     "geolib": "^3.3.3",
+    "helmet": "^8.3.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^14.0.2"
+    "uuid": "^14.0.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "supertest": "^7.3.2"
   }
 }
